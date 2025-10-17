@@ -496,14 +496,6 @@ public class SnapshotLifecycleTask implements SchedulerEngine.Listener {
             final SnapshotLifecyclePolicyMetadata.Builder newPolicyMetadata = SnapshotLifecyclePolicyMetadata.builder(policyMetadata);
             SnapshotLifecycleStats newStats = snapMeta.getStats();
 
-            if (registeredSnapshots.contains(snapshotId) == false) {
-                logger.warn(
-                    "Snapshot [{}] not found in registered set after snapshot completion. This means snapshot was"
-                        + " recorded as a failure by another snapshot's cleanup run.",
-                    snapshotId.getName()
-                );
-            }
-
             final Set<SnapshotId> runningSnapshots = currentlyRunningSnapshots(currentState);
             final List<PolicySnapshot> newRegistered = new ArrayList<>();
 
@@ -553,7 +545,13 @@ public class SnapshotLifecycleTask implements SchedulerEngine.Listener {
             }
 
             // Add stats from the just completed snapshot execution
-            if (exception.isPresent()) {
+            if (registeredSnapshots.contains(snapshotId) == false) {
+                logger.warn(
+                    "Snapshot [{}] not found in registered set after snapshot completion. This means snapshot was"
+                        + " recorded as a failure by another snapshot's cleanup run.",
+                    snapshotId.getName()
+                );
+            } else if (exception.isPresent()) {
                 newStats = newStats.withFailedIncremented(policyName);
                 newPolicyMetadata.setLastFailure(
                     new SnapshotInvocationRecord(
